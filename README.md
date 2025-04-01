@@ -1,4 +1,4 @@
-ElevatorControlSystem is a Console application built in .NET8 using C#. 
+ElevatorControlSystem is a Console application built in .NET8 using C#.
 It focuses on finding best suitable elevator in the building whenever a request recieves on a specific floor.
 Elevators keeps on moving towards the target floor. After reaching the target, they become available again for the request assignment.
 Few Latest C# features are also utilized in the implementation.
