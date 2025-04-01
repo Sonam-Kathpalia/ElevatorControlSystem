@@ -1,0 +1,36 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.10.35013.160
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ElevatorControlSystem", "ElevatorControlSystem\ElevatorControlSystem.csproj", "{1F9FFC6D-F7D5-4F18-868E-0DCE024AD8E0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ElevatorControlSystem.Tests", "ElevatorControlSystem.Tests\ElevatorControlSystem.Tests.csproj", "{ACD29E04-1E5F-4A22-A7FD-D6ED85916529}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{BBDA973F-94C7-479C-AEFF-68907EE01F45}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1F9FFC6D-F7D5-4F18-868E-0DCE024AD8E0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1F9FFC6D-F7D5-4F18-868E-0DCE024AD8E0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1F9FFC6D-F7D5-4F18-868E-0DCE024AD8E0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1F9FFC6D-F7D5-4F18-868E-0DCE024AD8E0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ACD29E04-1E5F-4A22-A7FD-D6ED85916529}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ACD29E04-1E5F-4A22-A7FD-D6ED85916529}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ACD29E04-1E5F-4A22-A7FD-D6ED85916529}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ACD29E04-1E5F-4A22-A7FD-D6ED85916529}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {750ED776-35BB-4F5F-9C97-80B6CAD5D073}
+	EndGlobalSection
+EndGlobal
