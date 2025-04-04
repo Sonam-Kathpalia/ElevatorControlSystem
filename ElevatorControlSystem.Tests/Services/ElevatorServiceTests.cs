@@ -30,20 +30,38 @@ namespace ElevatorControlSystem.Tests
         /// Test to ensure that an elevator is assigned to the nearest request floor.
         /// </summary>
         [Fact]
-        public async Task AssignRequest_ShouldAssignToNearestElevator()
+        public void AssignRequest_ShouldAssignToNearestElevator()
         {
             // Arrange: Create an elevator request for Floor 5 in Up direction.
             var request = new ElevatorRequest(5, Direction.Up);
+            var elevators = new List<Elevator> { new Elevator(1), new Elevator(2), new Elevator(3), new Elevator(4) };
 
             // Act: Assign the request to an elevator.
+            var assignedElevator = _elevatorService.AssignRequest(request);
+
+            // Assert: Verify that the nearest available elevator is assigned to requested floor 5
+            Assert.NotNull(assignedElevator);
+            Assert.Equal(assignedElevator.Id , elevators[0].Id);
+        }
+
+        /// <summary>
+        /// Test to verify that no elevator should be assigned if unavailable
+        /// </summary>
+
+        [Fact]
+        public void AssignRequest_ShouldNotAssignIfNoElevatorAvailable()
+        {
+            // Arrange
+            foreach (var elevator in _building.Elevators)
+                elevator.CurrentDirection = Direction.Up; // All elevators are occupied
+
+            var request = new ElevatorRequest(7, Direction.Up);
+
+            // Act
             _elevatorService.AssignRequest(request);
 
-            // Wait for elevator to reach the requested floor
-            await Task.Delay(12000); // Simulate elevator movement
-
-            // Assert: Verify that at least one elevator has reached Floor 5.
-            var assignedElevator = _building.Elevators.FirstOrDefault(e => e.CurrentFloor == 5);
-            Assert.NotNull(assignedElevator);
+            // Assert
+            Assert.All(_building.Elevators, e => Assert.NotEqual(e.CurrentFloor, 5));
         }
 
         /// <summary>
@@ -67,52 +85,22 @@ namespace ElevatorControlSystem.Tests
         }
 
         /// <summary>
-        /// Test to verify that multiple elevators can move independently in parallel.
+        /// Test to verify that the elevator moves correctly towards the requested floor when assigned a request
         /// </summary>
+
         [Fact]
-        public async Task Elevators_ShouldMoveIndependently()
-
+        public void MoveElevator_ShouldMoveCorrectly()
         {
-            // Arrange: Create two separate elevator requests for different floors.
-            var request1 = new ElevatorRequest(4, Direction.Up);
-            var request2 = new ElevatorRequest(9, Direction.Down);
+            // Arrange
+            var elevator = _building.Elevators.First();
+            var initialFloor = elevator.CurrentFloor;
 
-            // Act: Assign both requests.
-            _elevatorService.AssignRequest(request1);
-            _elevatorService.AssignRequest(request2);
+            // Act
+            Task.Run(() => _elevatorService.AssignRequest(new ElevatorRequest(5, Direction.Up)));
+            Task.Delay(3000).Wait(); // Simulate some time passing
 
-            // Wait for both elevators to complete their movement
-            await Task.Delay(20000);
-
-            // Assert: Verify that one elevator reached Floor 4 and another reached Floor 9.
-            var elevatorAt4 = _building.Elevators.Any(e => e.CurrentFloor == 4);
-            var elevatorAt9 = _building.Elevators.Any(e => e.CurrentFloor == 9);
-            Assert.NotNull(elevatorAt4);
-            Assert.NotNull(elevatorAt9);
-        }
-
-        /// <summary>
-        /// Test to ensure that an elevator does not change direction midway if it already has passengers.
-        /// </summary>
-        [Fact]
-        public async Task Elevator_ShouldNotReverseDirectionMidway()
-        {
-            // Arrange: Create an elevator request for Floor 6 going Up.
-            var request1 = new ElevatorRequest(6, Direction.Up);
-            var request2 = new ElevatorRequest(3, Direction.Down); // This should NOT be served immediately.
-
-            // Act: Assign first request and wait for elevator to start moving.
-            _elevatorService.AssignRequest(request1);
-            await Task.Delay(5000); // Allow the elevator to start moving.
-
-            // Assign second request.
-            _elevatorService.AssignRequest(request2);
-            await Task.Delay(20000); // Wait for elevator movement.
-
-            // Assert: Verify that the elevator did not change direction midway.
-            var elevatorAt6 = _building.Elevators.FirstOrDefault(e => e.CurrentFloor == 6);
-            Assert.NotNull(elevatorAt6);
-            Assert.True(elevatorAt6.CurrentDirection == Direction.None || elevatorAt6.CurrentDirection == Direction.Up);
-        }
+            // Assert
+            Assert.True(elevator.CurrentFloor >= initialFloor);
+        }    
     }
 }

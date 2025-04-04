@@ -47,7 +47,7 @@ namespace ElevatorControlSystem.Services
         /// Assigns an elevator request to the best available elevator.
         /// </summary>
         /// <param name="request">The elevator request with target floor and direction</param>
-        public void AssignRequest(ElevatorRequest request)
+        public Elevator? AssignRequest(ElevatorRequest request)
         {
             try
             {
@@ -55,14 +55,14 @@ namespace ElevatorControlSystem.Services
                 if (bestElevator == null)
                 {
                     Log.Warning($"No elevator available for Floor {request.Floor} ({request.Direction})");
-                    return;
+                    return bestElevator;
                 }
 
                 // If the best elevator is already at the requested floor, we don't need to add it to the stop list
                 if (bestElevator.CurrentFloor == request.Floor)
                 {
                     Log.Information($"\x1b[31mElevator {bestElevator.Id} is already at Floor {request.Floor}. No movement needed. Doors opening...");
-                    return;
+                    return bestElevator;    
                 }
 
 
@@ -81,12 +81,15 @@ namespace ElevatorControlSystem.Services
                         _downStops[bestElevator.Id].Add(request.Floor);
                     }
                 }
-
+               
                 Log.Information($"Assigned Elevator {bestElevator.Id} to Floor {request.Floor}");
+
+                return bestElevator;
             }
             catch (Exception ex)
-            {
+            {               
                 Log.Error(ex, "Error occurred while assigning a request.");
+                return null;
             }
         }
 
