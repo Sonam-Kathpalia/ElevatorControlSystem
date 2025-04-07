@@ -1,4 +1,4 @@
-﻿using ElevatorControlSystem.Enum;
+﻿using ElevatorControlSystem.Enums;
 using ElevatorControlSystem.Interfaces;
 using ElevatorControlSystem.Models;
 using Microsoft.Extensions.Options;

@@ -1,4 +1,4 @@
-﻿namespace ElevatorControlSystem.Enum
+﻿namespace ElevatorControlSystem.Enums
 {
     /// <summary>
     /// Enum representing the direction an elevator can move.

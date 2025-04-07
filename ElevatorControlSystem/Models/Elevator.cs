@@ -1,4 +1,4 @@
-﻿using ElevatorControlSystem.Enum;
+﻿using ElevatorControlSystem.Enums;
 
 namespace ElevatorControlSystem.Models
 {

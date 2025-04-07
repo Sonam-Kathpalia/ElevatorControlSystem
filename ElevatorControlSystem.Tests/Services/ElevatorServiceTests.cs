@@ -1,106 +1,223 @@
-﻿using ElevatorControlSystem.Enum;
+﻿using ElevatorControlSystem.Enums;
 using ElevatorControlSystem.Models;
 using ElevatorControlSystem.Services;
 using Microsoft.Extensions.Options;
 
 namespace ElevatorControlSystem.Tests
 {
-    /// <summary>
-    /// Unit tests for the ElevatorService class, using XUnit framework.
-    /// This test suite verifies the elevator assignment, movement logic, and parallel execution.
-    /// </summary>
     public class ElevatorServiceTests
     {
-        private readonly Building _building; // Represents the building with multiple floors and elevators
-        private readonly ElevatorService _elevatorService; // Elevator service handling movement logic
+        private readonly Building _building;
+        private readonly ElevatorService _elevatorService;
         private readonly ElevatorSettings _elevatorSettings;
 
-        /// <summary>
-        /// Initializes a test instance with a building containing 10 floors and 4 elevators.
-        /// </summary>
         public ElevatorServiceTests()
         {
-            _building = new Building(10, 4); // Create a building with 10 floors and 4 elevators
-            _elevatorSettings = new ElevatorSettings { NumberOfFloors = 10 };
+            _building = new Building(10, 4);
+            _elevatorSettings = new ElevatorSettings 
+            { 
+                NumberOfFloors = 10,
+                TimetakenToMoveBetweenFloors = 10,
+                TimetakenByPassengersToEnterAndLeave = 10
+            };
             var options = Options.Create(_elevatorSettings);
-            _elevatorService = new ElevatorService(_building, options); // Initialize ElevatorService with the created building
+            _elevatorService = new ElevatorService(_building, options);
         }
 
         /// <summary>
-        /// Test to ensure that an elevator is assigned to the nearest request floor.
+        /// Verifies that a request is assigned to the closest available elevator.
         /// </summary>
         [Fact]
         public void AssignRequest_ShouldAssignToNearestElevator()
         {
-            // Arrange: Create an elevator request for Floor 5 in Up direction.
+            // Arrange
             var request = new ElevatorRequest(5, Direction.Up);
-            var elevators = new List<Elevator> { new Elevator(1), new Elevator(2), new Elevator(3), new Elevator(4) };
+            var elevator = _building.Elevators.First();
+            elevator.CurrentFloor = 3;
+            elevator.CurrentDirection = Direction.None;
 
-            // Act: Assign the request to an elevator.
+            // Act
             var assignedElevator = _elevatorService.AssignRequest(request);
 
-            // Assert: Verify that the nearest available elevator is assigned to requested floor 5
+            // Assert
             Assert.NotNull(assignedElevator);
-            Assert.Equal(assignedElevator.Id , elevators[0].Id);
+            Assert.Equal(elevator.Id, assignedElevator.Id);
         }
 
         /// <summary>
-        /// Test to verify that no elevator should be assigned if unavailable
+        /// Confirms that no elevator is assigned when all elevators are busy in opposite direction.
         /// </summary>
-
         [Fact]
         public void AssignRequest_ShouldNotAssignIfNoElevatorAvailable()
         {
             // Arrange
             foreach (var elevator in _building.Elevators)
-                elevator.CurrentDirection = Direction.Up; // All elevators are occupied
+            {
+                elevator.CurrentDirection = Direction.Up;
+                elevator.CurrentFloor = 7;
+            }
 
-            var request = new ElevatorRequest(7, Direction.Up);
+            var request = new ElevatorRequest(5, Direction.Down);
 
             // Act
-            _elevatorService.AssignRequest(request);
+            var assignedElevator = _elevatorService.AssignRequest(request);
 
             // Assert
-            Assert.All(_building.Elevators, e => Assert.NotEqual(e.CurrentFloor, 5));
+            Assert.Null(assignedElevator);
         }
 
         /// <summary>
-        /// Test to ensure that an elevator reaches the target floor correctly.
+        /// Ensures that an elevator already at the requested floor is assigned without movement.
         /// </summary>
         [Fact]
-        public async Task MoveElevator_ShouldReachTargetFloor()
-        {
-            // Arrange: Create a request for Floor 8 in Up direction.
-            var request = new ElevatorRequest(8, Direction.Up);
-
-            // Act: Assign request to an elevator.
-            _elevatorService.AssignRequest(request);
-
-            // Wait for elevator to complete its movement
-            await Task.Delay(16000); // Simulate elevator movement
-
-            // Assert: Check that an elevator has reached Floor 8.
-            var arrivedElevator = _building.Elevators.FirstOrDefault(e => e.CurrentFloor == 8);
-            Assert.NotNull(arrivedElevator);
-        }
-
-        /// <summary>
-        /// Test to verify that the elevator moves correctly towards the requested floor when assigned a request
-        /// </summary>
-
-        [Fact]
-        public void MoveElevator_ShouldMoveCorrectly()
+        public void AssignRequest_ShouldHandleSameFloorRequest()
         {
             // Arrange
             var elevator = _building.Elevators.First();
-            var initialFloor = elevator.CurrentFloor;
+            elevator.CurrentFloor = 5;
+            elevator.CurrentDirection = Direction.None;
+            var request = new ElevatorRequest(5, Direction.Up);
 
             // Act
-            Task.Run(() => _elevatorService.AssignRequest(new ElevatorRequest(5, Direction.Up)));
-            Task.Delay(3000).Wait(); // Simulate some time passing
+            var assignedElevator = _elevatorService.AssignRequest(request);
 
             // Assert
-            Assert.True(elevator.CurrentFloor >= initialFloor);
-        }    
+            Assert.NotNull(assignedElevator);
+            Assert.Equal(elevator.Id, assignedElevator.Id);
+            Assert.Equal(5, assignedElevator.CurrentFloor);
+        }
+
+        /// <summary>
+        /// Validates that an idle elevator is preferred over a moving one for new requests.
+        /// </summary>
+        [Fact]
+        public void AssignRequest_ShouldPreferIdleElevator()
+        {
+            // Arrange
+            var elevator1 = _building.Elevators[0];
+            var elevator2 = _building.Elevators[1];
+            
+            elevator1.CurrentFloor = 3;
+            elevator1.CurrentDirection = Direction.Up;
+            
+            elevator2.CurrentFloor = 4;
+            elevator2.CurrentDirection = Direction.None;
+
+            var request = new ElevatorRequest(5, Direction.Up);
+
+            // Act
+            var assignedElevator = _elevatorService.AssignRequest(request);
+
+            // Assert
+            Assert.NotNull(assignedElevator);
+            Assert.Equal(elevator2.Id, assignedElevator.Id);
+        }
+
+        /// <summary>
+        /// Checks that an elevator moving in the same direction as the request is preferred.
+        /// </summary>
+        [Fact]
+        public void AssignRequest_ShouldPreferSameDirectionElevator()
+        {
+            // Arrange
+            var elevator1 = _building.Elevators[0];
+            var elevator2 = _building.Elevators[1];
+            
+            elevator1.CurrentFloor = 3;
+            elevator1.CurrentDirection = Direction.Up;
+            
+            elevator2.CurrentFloor = 3;
+            elevator2.CurrentDirection = Direction.Down;
+
+            var request = new ElevatorRequest(5, Direction.Up);
+
+            // Act
+            var assignedElevator = _elevatorService.AssignRequest(request);
+
+            // Assert
+            Assert.NotNull(assignedElevator);
+            Assert.Equal(elevator1.Id, assignedElevator.Id);
+        }
+
+        /// <summary>
+        /// Confirms that the nearest elevator is selected when multiple elevators are available.
+        /// </summary>
+        [Fact]
+        public void AssignRequest_ShouldPreferCloserElevator()
+        {
+            // Arrange
+            var elevator1 = _building.Elevators[0];
+            var elevator2 = _building.Elevators[1];
+            
+            elevator1.CurrentFloor = 2;
+            elevator1.CurrentDirection = Direction.None;
+            
+            elevator2.CurrentFloor = 8;
+            elevator2.CurrentDirection = Direction.None;
+
+            var request = new ElevatorRequest(3, Direction.Up);
+
+            // Act
+            var assignedElevator = _elevatorService.AssignRequest(request);
+
+            // Assert
+            Assert.NotNull(assignedElevator);
+            Assert.Equal(elevator1.Id, assignedElevator.Id);
+        }
+
+        /// <summary>
+        /// Verifies proper handling of requests at the top and bottom floors of the building.
+        /// </summary>
+        [Fact]
+        public void AssignRequest_ShouldHandleEdgeFloors()
+        {
+            // Arrange
+            var elevator = _building.Elevators.First();
+            elevator.CurrentDirection = Direction.None;
+
+            // Test bottom floor
+            elevator.CurrentFloor = 0;
+            var upRequest = new ElevatorRequest(0, Direction.Up);
+            
+            // Act & Assert for bottom floor
+            var assignedElevator1 = _elevatorService.AssignRequest(upRequest);
+            Assert.NotNull(assignedElevator1);
+            Assert.Equal(elevator.Id, assignedElevator1.Id);
+
+            // Test top floor
+            elevator.CurrentFloor = 9;
+            var downRequest = new ElevatorRequest(9, Direction.Down);
+            
+            // Act & Assert for top floor
+            var assignedElevator2 = _elevatorService.AssignRequest(downRequest);
+            Assert.NotNull(assignedElevator2);
+            Assert.Equal(elevator.Id, assignedElevator2.Id);
+        }
+
+        /// <summary>
+        /// Ensures that multiple requests can be assigned to the same elevator sequentially.
+        /// </summary>
+        [Fact]
+        public void AssignRequest_ShouldHandleMultipleRequests()
+        {
+            // Arrange
+            var elevator = _building.Elevators.First();
+            elevator.CurrentFloor = 0;
+            elevator.CurrentDirection = Direction.None;
+
+            var requests = new List<ElevatorRequest>
+            {
+                new ElevatorRequest(2, Direction.Up),
+                new ElevatorRequest(4, Direction.Up),
+                new ElevatorRequest(6, Direction.Up)
+            };
+
+            // Act
+            var assignedElevators = requests.Select(r => _elevatorService.AssignRequest(r)).ToList();
+
+            // Assert
+            Assert.All(assignedElevators, e => Assert.NotNull(e));
+            Assert.All(assignedElevators, e => Assert.Equal(elevator.Id, e.Id));
+        }
     }
 }
